@@ -24,3 +24,19 @@ go run .
 ```
 
 Then you can access the endpoint at `http://127.0.01:3000` in your browser or run `curl http://127.0.01:3000`.
+
+### Running Docker Image For The Go HTTP Endpoint Program
+
+To build the docker image for the Go HTTP endpoint program run in the root directory of the repository:
+```sh
+docker build -f go_http_endpoint/http_endpoint.dockerfile -t http-endpoint:test go_http_endpoint
+```
+
+That creates and image called `http-endpoint` with its version set to `test`.
+
+Then to run the container:
+```sh
+docker run -p 3000:3000 http-endpoint:test
+```
+
+This runs the test image in a container and opens up port 3000 (for your device to access; or otherwise depending on your firewall) on both the container and your local machine hosting the container for you to access.
