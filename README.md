@@ -3,6 +3,8 @@
 
 ### Go Program description
 
+Found in `./go_http_endpoint/`
+
 Sets up a Go HTTP endpoint that responds with JSON.
 
 The most important parts are the `app.Get("/", func(c *fiber.Ctx) error` and `app.Listen(":3000")`.
