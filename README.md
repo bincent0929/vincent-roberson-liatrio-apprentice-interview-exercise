@@ -40,3 +40,34 @@ docker run -p 3000:3000 http-endpoint:test
 ```
 
 This runs the test image in a container and opens up port 3000 (for your device to access; or otherwise depending on your firewall) on both the container and your local machine hosting the container for you to access.
+
+### Dockerfile Overview
+The `./go_http_endpoint/http_endpoint.dockerfile` is divided into two sections:
+1. Building The Program.
+2. Running the program.
+
+By splitting up the build and run steps, the image used to run the program can be much smaller.
+
+`golang:1.27` is 1.31GB in size. Whereas `gcr.io/distroless/static-debian12:nonroot` is only 6.18MB.
+
+1. Building The Program
+The program is built using the `golang:1.27` image.
+
+To start, it creates a working directory for the build. Then it copies `go.mod` and `go.sum` into the working directory and runs `go mod download` to get all of the dependicies for the program.
+
+Then it copies what has been saved into `/src` back into the root location of the Dockerfile and builds the program.
+
+To delve into the build command:
+```sh
+CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o /app .
+```
+
+`CGO_ENABLED` basically means that the program won't use `C` system calls. It will use static `Go` calls. It just makes the program more efficient and doesn't interfere with output from the program as is.
+
+`GOOS` sets the desired compile operating system. In this case the image being used is based on Linux. So that is chosen.
+
+The `-ldflags` are passed to the linker. `-s` strips the symbol table and `-w` strips the DWARF debug information. This basically just makes the compiled program smaller than it would be otherwise.
+
+The `-o /app` just tells it where the binary should go once it's done compiling.
+
+The `.`, like with `go run .` above tells the compiler where to find the program that it is compiling. In this case, that program is sitting in 
