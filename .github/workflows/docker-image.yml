@@ -1,0 +1,29 @@
+name: Docker Image CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Build the Docker image
+      # builds the image and appends the date for the version
+      run: docker build -f go_http_endpoint/http_endpoint.dockerfile -t http-endpoint:$(date +%s)
+
+    - name: Run the container for testing
+      # maps the container's port to the port that
+      # the test container uses
+      run: docker run -d -p 80:3000 --name http-endpoint:latest
+    
+    - name: run tests
+      uses: liatrio/github-actions/apprentice-action@master
+
+    
