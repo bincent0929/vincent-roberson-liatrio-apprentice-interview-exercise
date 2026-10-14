@@ -28,13 +28,16 @@ jobs:
     
     - name: run Liatrio's tests
       # their minified-JSON test is unfinished and always throws,
-      # so this step can't pass; the next step decides the result
+      # so this step won't pass unless it is updated.
+      id: liatrio-tests
       uses: liatrio/github-actions/apprentice-action@master
       continue-on-error: true
 
     - name: re-run Liatrio's tests, ignoring the unfinished one
-      # the action above downloaded its tests and installed mocha here;
-      # --grep/--invert runs every test except the minified-JSON one
+      if: steps.liatrio-tests.outcome == 'failure'
+      # if the above action fails, this will
+      # go ahead and re-run the action, but ignore
+      # the minified test that isn't implemented.
       run: |
         cd /home/runner/work/_actions/liatrio/github-actions/master/apprentice-action
         npx mocha --grep "minified JSON" --invert tests/
@@ -45,7 +48,6 @@ jobs:
         node-version: '22'
 
     - name: run my minified JSON test
-      # Node 22 runs .ts files directly by stripping the types
       run: node --test tests/minified.test.ts
 
     - name: login to GHCR (Github's container image repository)
