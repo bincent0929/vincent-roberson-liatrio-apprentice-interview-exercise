@@ -27,9 +27,9 @@ jobs:
       run: docker run -d -p 80:3000 --name http-endpoint http-endpoint:latest
     
     - name: run Liatrio's tests
-      # their unimplemented minified-JSON test is reported as
-      # "pending" by mocha, which does not fail the run
-      uses: liatrio/github-actions/apprentice-action@master
+      # local copy of their action, with their unimplemented
+      # minified-JSON test marked as skipped
+      uses: ./apprentice-action
 
     - name: set up Node for my own tests
       uses: actions/setup-node@v4
