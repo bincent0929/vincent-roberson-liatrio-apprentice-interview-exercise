@@ -26,9 +26,33 @@ jobs:
       # the test container uses
       run: docker run -d -p 80:3000 --name http-endpoint http-endpoint:latest
     
-    - name: run tests
-      # uses the local copy of the action that includes the minified JSON test
-      uses: ./apprentice-action
+    - name: run Liatrio's tests
+      # their minified-JSON test is unfinished and always throws,
+      # so this step won't pass unless it is updated.
+      id: liatrio-tests
+      uses: liatrio/github-actions/apprentice-action@master
+      continue-on-error: true
+
+    - name: re-run Liatrio's tests, ignoring the unfinished one
+      if: steps.liatrio-tests.outcome == 'failure'
+      # if the above action fails, this will
+      # go ahead and re-run the action, but ignore
+      # the minified test that isn't implemented.
+      run: |
+        cd /home/runner/work/_actions/liatrio/github-actions/master/apprentice-action
+        npx mocha --grep "minified JSON" --invert tests/
+
+    - name: set up uv for my own tests
+      uses: astral-sh/setup-uv@v6
+      with:
+        version: '0.13.1'
+
+    - name: run my minified JSON test
+      working-directory: tests
+      # the run looks at the python program data
+      # in the tests folder and correctly installs
+      # the versions and packages needed
+      run: uv run python -m unittest -v
 
     - name: login to GHCR (Github's container image repository)
       if: github.event_name == 'push'
