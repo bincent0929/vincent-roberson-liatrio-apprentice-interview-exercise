@@ -32,7 +32,19 @@ describe("Tests to the \"/\" endpoint", () => {
         const now = Date.now();
         expect(res.data.timestamp).to.be.within(now - 5000, now);
     });
-    // Liatrio's version of this test is unimplemented and throws.
-    // it.skip reports it as pending; tests/minified.test.ts covers it.
-    it.skip("should return a minified JSON object.");
+    it("should return a minified JSON object.", async () => {
+        const res = await axios(`http://${dockerBridgeIP}:80/`, {
+            // tells the axios method to not
+            // change the output from the endpoint
+            transformResponse: [(data) => data],
+        });
+        
+        const raw = res.data;
+        expect(raw).to.be.a("string");
+
+        // turns the response into a minified version
+        // used to compare the to the raw input
+        const minified = JSON.stringify(JSON.parse(raw));
+        expect(raw).to.equal(minified);
+    });
 });
