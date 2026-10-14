@@ -42,13 +42,15 @@ jobs:
         cd /home/runner/work/_actions/liatrio/github-actions/master/apprentice-action
         npx mocha --grep "minified JSON" --invert tests/
 
-    - name: set up Node for my own tests
-      uses: actions/setup-node@v4
+    - name: set up uv for my own tests
+      # uv installs the Python version pinned in tests/.python-version
+      uses: astral-sh/setup-uv@v6
       with:
-        node-version: '22'
+        version: '0.13.1'
 
     - name: run my minified JSON test
-      run: node --test tests/minified.test.ts
+      working-directory: tests
+      run: uv run python -m unittest -v
 
     - name: login to GHCR (Github's container image repository)
       if: github.event_name == 'push'
