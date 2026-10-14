@@ -27,7 +27,8 @@ jobs:
       run: docker run -d -p 80:3000 --name http-endpoint http-endpoint:latest
     
     - name: run tests
-      uses: liatrio/github-actions/apprentice-action@master
+      # uses the local copy of the action that includes the minified JSON test
+      uses: ./apprentice-action
 
     - name: login to GHCR (Github's container image repository)
       if: github.event_name == 'push'
