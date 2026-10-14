@@ -26,9 +26,19 @@ jobs:
       # the test container uses
       run: docker run -d -p 80:3000 --name http-endpoint http-endpoint:latest
     
-    - name: run tests
-      # uses the local copy of the action that includes the minified JSON test
-      uses: ./apprentice-action
+    - name: run Liatrio's tests
+      # their unimplemented minified-JSON test is reported as
+      # "pending" by mocha, which does not fail the run
+      uses: liatrio/github-actions/apprentice-action@master
+
+    - name: set up Node for my own tests
+      uses: actions/setup-node@v4
+      with:
+        node-version: '22'
+
+    - name: run my minified JSON test
+      # Node 22 runs .ts files directly by stripping the types
+      run: node --test tests/minified.test.ts
 
     - name: login to GHCR (Github's container image repository)
       if: github.event_name == 'push'
