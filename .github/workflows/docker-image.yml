@@ -2,7 +2,7 @@ name: Docker Image CI
 
 on:
   push:
-    branches: [ "main", "ts-minified-test" ]
+    branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
 
@@ -43,13 +43,15 @@ jobs:
         npx mocha --grep "minified JSON" --invert tests/
 
     - name: set up uv for my own tests
-      # uv installs the Python version pinned in tests/.python-version
       uses: astral-sh/setup-uv@v6
       with:
         version: '0.13.1'
 
     - name: run my minified JSON test
       working-directory: tests
+      # the run looks at the python program data
+      # in the tests folder and correctly installs
+      # the versions and packages needed
       run: uv run python -m unittest -v
 
     - name: login to GHCR (Github's container image repository)
