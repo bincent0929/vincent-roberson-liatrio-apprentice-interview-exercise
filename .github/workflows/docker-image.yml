@@ -2,7 +2,7 @@ name: Docker Image CI
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main", "ts-minified-test" ]
   pull_request:
     branches: [ "main" ]
 
