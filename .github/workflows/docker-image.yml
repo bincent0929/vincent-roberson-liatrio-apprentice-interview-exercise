@@ -2,7 +2,7 @@ name: Docker Image CI
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main", "github-actions" ]
   pull_request:
     branches: [ "main" ]
 
@@ -11,19 +11,46 @@ jobs:
   build:
 
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write # needed for using the GITHUB_TOKEN
 
     steps:
     - uses: actions/checkout@v4
     - name: Build the Docker image
-      # builds the image and appends the date for the version
-      run: docker build -f go_http_endpoint/http_endpoint.dockerfile -t http-endpoint:$(date +%s)
+      # builds the image
+      run: docker build -f go_http_endpoint/http_endpoint.dockerfile -t http-endpoint:latest go_http_endpoint
 
     - name: Run the container for testing
       # maps the container's port to the port that
       # the test container uses
-      run: docker run -d -p 80:3000 --name http-endpoint:latest
+      run: docker run -d -p 80:3000 --name http-endpoint http-endpoint:latest
     
     - name: run tests
       uses: liatrio/github-actions/apprentice-action@master
 
-    
+    - name: login to GHCR (Github's container image repository)
+      if: github.event_name == 'push'
+      uses: docker/login-action@v3
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        # this is a token created by github
+        # when the action is run
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Tag and push
+      if: github.event_name == 'push'
+      # Updates latest to this push.
+      # Also saves this push to its own, unique SHA marked
+      # image for access after subsequent pushes.
+      # the ",," after "GITHUB_REPOSITORY_OWNER" makes it all
+      # lowercase.
+      # The "::7" after the SHA variable has it take only 7
+      # characters from the full SHA.
+      run: |
+        IMAGE=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/http-endpoint
+        docker tag http-endpoint:latest $IMAGE:latest
+        docker tag http-endpoint:latest $IMAGE:${GITHUB_SHA::7}
+        docker push $IMAGE:latest
+        docker push $IMAGE:${GITHUB_SHA::7}
