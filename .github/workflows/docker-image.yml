@@ -2,7 +2,7 @@ name: Docker Image CI
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main", "apprentice-action-fix" ]
   pull_request:
     branches: [ "main" ]
 
@@ -27,20 +27,12 @@ jobs:
       run: docker run -d -p 80:3000 --name http-endpoint http-endpoint:latest
     
     - name: run Liatrio's tests
-      # their minified-JSON test is unfinished and always throws,
-      # so this step won't pass unless it is updated.
       id: liatrio-tests
-      uses: liatrio/github-actions/apprentice-action@master
-      continue-on-error: true
-
-    - name: re-run Liatrio's tests, ignoring the unfinished one
-      if: steps.liatrio-tests.outcome == 'failure'
-      # if the above action fails, this will
-      # go ahead and re-run the action, but ignore
-      # the minified test that isn't implemented.
-      run: |
-        cd /home/runner/work/_actions/liatrio/github-actions/master/apprentice-action
-        npx mocha --grep "minified JSON" --invert tests/
+      # uses the hash for a previous release
+      # avoids just grabbing whatever the latest
+      # version is and at the moment gets around
+      # an unimplemented issue
+      uses: liatrio/github-actions/apprentice-action@5d1fa21f3d370ceaa4f67bae080db2523eb12ff6
 
     - name: set up uv for my own tests
       uses: astral-sh/setup-uv@v6
