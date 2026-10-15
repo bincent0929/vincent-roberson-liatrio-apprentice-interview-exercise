@@ -33,6 +33,11 @@ jobs:
       # an unimplemented issue
       uses: liatrio/github-actions/apprentice-action@5d1fa21f3d370ceaa4f67bae080db2523eb12ff6
 
+    - name: set up node for my own tests
+      uses: actions/setup-node@v4
+      with:
+        node-version: '22'
+
     - name: minified test
       run: node --test tests/minified.test.mjs
 
