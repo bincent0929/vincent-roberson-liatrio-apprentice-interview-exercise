@@ -2,12 +2,11 @@ name: Docker Image CI
 
 on:
   push:
-    branches: [ "main", "image-build-efficiency" ]
+    branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
 
 jobs:
-  # slight change to test image caching
   build:
 
     runs-on: ubuntu-latest
