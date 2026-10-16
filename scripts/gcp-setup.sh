@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
+# !!! Before running the script, you must !!!
+# 1. Authenticate your gcloud cli application
+# 2. Create and/or config your project
+# 3. Add billing to the project for its compute
+#
 # One-time setup of the Google Cloud resources that the
 # GitHub workflow deploys to. Safe to re-run: anything that
 # already exists is left alone.
