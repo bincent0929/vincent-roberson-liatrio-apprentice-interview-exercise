@@ -10,6 +10,7 @@ import (
 type Response struct {
 	Message   string `json:"message"`
 	Timestamp int64  `json:"timestamp"`
+	Test      string `json:"test"`
 }
 
 func main() {
@@ -18,10 +19,11 @@ func main() {
 	app.Get("/", func(c *fiber.Ctx) error {
 		// This returns as a minified JSON object
 		return c.JSON(Response{
-			Message:   "My name is Vincent Roberson",
+			Message: "My name is Vincent Roberson",
 			// needs to be Milli to conform with
 			// the testing precision
 			Timestamp: time.Now().UnixMilli(),
+			Test:      "This will be deployed",
 		})
 	})
 
