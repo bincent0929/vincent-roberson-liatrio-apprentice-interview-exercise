@@ -2,7 +2,7 @@ name: Docker Image CI
 
 on:
   push:
-    branches: [ "main", "google-cloud" ]
+    branches: [ "main", "continuous-deployment" ]
   pull_request:
     branches: [ "main" ]
 
