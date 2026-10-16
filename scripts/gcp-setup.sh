@@ -10,7 +10,7 @@
 set -euo pipefail
 
 PROJECT_ID=${PROJECT_ID:?set PROJECT_ID to your GCP project id}
-REGION=${REGION:-us-central1}
+REGION=${REGION:-us-west1}
 SERVICE=${SERVICE:-http-endpoint}
 AR_REPO=${AR_REPO:-http-endpoint}
 GITHUB_REPO=${GITHUB_REPO:-bincent0929/vincent-roberson-liatrio-apprentice-interview-exercise}

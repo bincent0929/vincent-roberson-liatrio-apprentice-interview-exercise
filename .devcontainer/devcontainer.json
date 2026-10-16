@@ -5,16 +5,11 @@
 	// Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
 	"image": "mcr.microsoft.com/devcontainers/base:trixie",
 	"features": {
-		"ghcr.io/devcontainers/features/go:1": {},
-		"ghcr.io/va-h/devcontainers-features/uv:1": {
-			"version": "0.13.1"
-		}
-	},
-	"customizations": {
-		"vscode": {
-			"extensions": [
-				"ms-python.python"
-			]
+		"ghcr.io/devcontainers/features/go:1": {
+			"version": "1.4.0"
+		},
+		"ghcr.io/dhoeric/features/google-cloud-cli:1": {
+			"version": "1.0.1"
 		}
 	}
 
