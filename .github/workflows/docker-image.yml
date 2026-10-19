@@ -87,14 +87,21 @@ jobs:
       id-token: write # lets GitHub hand Google an OIDC token (no stored keys)
 
     steps:
+    # Gets a Github token for Google Cloud
+    # to verify this run and to grant access
+    # to the deployer account `github-deployer`.
     - name: authenticate to Google Cloud
       id: auth
       uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
       with:
         workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+        # `github-deployer`
         service_account: ${{ vars.GCP_DEPLOY_SA }}
         token_format: access_token
 
+    # Logs in to be able to access the image
+    # that was created again because separate
+    # jobs authenticate separately.
     - name: login to GHCR
       uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
       with:
@@ -102,13 +109,20 @@ jobs:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
 
+    # Authenticates to push the image to
+    # Google's image registry using the
+    # access token that was received during
+    # athentication of the run.
     - name: login to Artifact Registry
       uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
       with:
         registry: ${{ vars.GCP_REGION }}-docker.pkg.dev
         username: oauth2accesstoken
+        # the token that was received in the first step
         password: ${{ steps.auth.outputs.access_token }}
 
+    # Copies the image from Github's image storage
+    # to Google's image storage.
     - name: copy the image from GHCR to Artifact Registry
       # Cloud Run can only pull from Google's registries,
       # so the exact image that was tested gets copied over.
@@ -122,6 +136,12 @@ jobs:
         docker push $DST
         echo "ref=$DST" >> "$GITHUB_OUTPUT"
 
+    # This deploys the image that was received from
+    # Github in the Artifact Registry using the runtime
+    # account that was set up in the one-time script.
+    #
+    # It uses the `github-deployer` user that was authenticated
+    # earlier in the job to start the Cloud Run.
     - name: deploy to Cloud Run
       id: deploy
       uses: google-github-actions/deploy-cloudrun@2028e2d7d30a78c6910e0632e48dd561b064884d # v3.0.1
