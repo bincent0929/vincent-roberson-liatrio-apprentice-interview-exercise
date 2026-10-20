@@ -16,11 +16,8 @@ func main() {
 	app := fiber.New()
 
 	app.Get("/", func(c *fiber.Ctx) error {
-		// This returns as a minified JSON object
 		return c.JSON(Response{
 			Message:   "My name is Vincent Roberson",
-			// needs to be Milli to conform with
-			// the testing precision
 			Timestamp: time.Now().UnixMilli(),
 		})
 	})

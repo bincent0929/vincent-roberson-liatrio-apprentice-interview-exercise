@@ -1,66 +1,42 @@
 name: Docker Image CI
 
 on:
-  # Runs the workflow on pushes or pull requests to main
   push:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
 
 jobs:
-  # Builds the Docker Container Image.
-  # Tests the image in the runner using
-  # Liatrio's testing suite and one of my
-  # own tests to cover for unimplemented tests.
-  # Then pushes the image to Docker's image repository.
   build-and-test:
 
     runs-on: ubuntu-24.04
     permissions:
       contents: read
-      packages: write # needed for using the GITHUB_TOKEN
+      packages: write
 
     steps:
-    # Clones the repo into the runner
-    - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+    - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
     - name: Set up Docker Buildx
-      # Uses the newer docker build engine because
-      # it supports caching the image between runs.
-      uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
+      uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f
 
     - name: Build the Docker image
-      # builds the image according to the dockerfile, 
-      # reusing cache information from previous runs
-      uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
+      uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8
       with:
         context: go_http_endpoint
         file: go_http_endpoint/http_endpoint.dockerfile
         tags: http-endpoint:latest
-        load: true # put the image in the local Docker so `docker run` can find it
-        # Taking from the `gha` basically
-        # just tells dockerx to look for
-        # cache in the storage area that Github
-        # keeps per repository for action.
+        load: true
         cache-from: type=gha
-        # This tells the builder to save
-        # anything that's been built to the
-        # repositories cache for future runs.
         cache-to: type=gha,mode=max
 
     - name: Run the container for testing
-      # maps the container's port to the port that
-      # the test container uses
       run: docker run -d -p 80:3000 --name http-endpoint http-endpoint:latest
-    
+
     - name: Run Liatrio's tests
-      # The most recent working release of
-      # the provided testing action.
       uses: liatrio/github-actions/apprentice-action@5d1fa21f3d370ceaa4f67bae080db2523eb12ff6
 
     - name: Set up node for my own tests
-      # Bring in a newer node version than the default
-      # because it supports node's own testing libraries
-      uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+      uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
       with:
         node-version: '22'
 
@@ -69,27 +45,14 @@ jobs:
 
     - name: Login to GHCR (Github's container image repository)
       if: github.event_name == 'push'
-      # Allows docker to authenticate to Github's image
-      # repository in order to push the image
-      uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
+      uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9
       with:
         registry: ghcr.io
         username: ${{ github.actor }}
-        # This is a token created by Github
-        # when the action is run.
         password: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Tag and push
       if: github.event_name == 'push'
-      # Updates latest to this push's build.
-      # Also saves this push to its own, unique SHA marked
-      # image for access after subsequent pushes.
-      # 
-      # The ",," after "GITHUB_REPOSITORY_OWNER" makes it all
-      # lowercase.
-      # 
-      # The "::7" after the SHA variable has it take only 7
-      # characters from the full SHA.
       run: |
         IMAGE=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/http-endpoint
         docker tag http-endpoint:latest $IMAGE:latest
@@ -97,82 +60,39 @@ jobs:
         docker push $IMAGE:latest
         docker push $IMAGE:${GITHUB_SHA::7}
 
-  # Copies the image from Github's image repository
-  # to Google's Artifact Registry to be used in a Cloud Run
-  # service deployment of the image.
-  #
-  # Authenticates using an OIDC token created from Github
-  # and verified by Google to enable the image push and
-  # Cloud Run on Google's end.
   deploy:
-    # Only deploys images that passed the tests and were pushed.
     needs: build-and-test
-    # Only runs this step if it is a push
-    # rather than on pull requests.
     if: github.event_name == 'push'
     runs-on: ubuntu-24.04
     permissions:
       contents: read
-      
-      packages: read # pull the image back from GHCR
-      # Jobs work with separate pools of resources.
-      # So the image must be fetched again for this job.
-
-      id-token: write # lets GitHub hand Google an OIDC token (no stored keys)
-      # OIDC tokens are per-run tokens that
-      # are not persistent. Stronger security
-      # than adding a secret to the repository
-      # to authenticate between the two systems.
+      packages: read
+      id-token: write
 
     steps:
-    # Gets a Github token for Google Cloud
-    # to verify this run and to grant access
-    # to the deployer account `github-deployer`.
     - name: Authenticate to Google Cloud
       id: auth
-      # This allows Google to check the OIDC token
-      # for whether Github was truly the creator of
-      # the token and then creates a token for access
-      # to the Artifact Registry editor and Cloud Run
-      # permissioned account for the repository that was
-      # set by the one-time script.
-      uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
+      uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093
       with:
         workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
-        # `github-deployer`
         service_account: ${{ vars.GCP_DEPLOY_SA }}
-        # The token that Google gives back to allow
-        # the job to perform steps that work on Google Cloud.
         token_format: access_token
 
-    # Logs in to be able to access the image
-    # that was created. Again, because separate
-    # jobs authenticate separately.
     - name: Login to GHCR
-      uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
+      uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9
       with:
         registry: ghcr.io
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
 
-    # Authenticates to push the image to
-    # Google's image registry using the
-    # access token that was given during
-    # the OIDC handshake done above.
     - name: Login to Artifact Registry
-      uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
+      uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9
       with:
         registry: ${{ vars.GCP_REGION }}-docker.pkg.dev
         username: oauth2accesstoken
-        # the token that was received in the first step
         password: ${{ steps.auth.outputs.access_token }}
 
-    # Copies the image from Github's image storage
-    # to Google's image storage.
     - name: Copy the image from GHCR to Artifact Registry
-      # Cloud Run can only pull from Google's registries,
-      # So the exact image that was tested gets copied over.
-      # Using The SHA tag means every deploy is a distinct version.
       id: image
       run: |
         SRC=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/http-endpoint:${GITHUB_SHA::7}
@@ -181,27 +101,13 @@ jobs:
         docker tag $SRC $DST
         docker push $DST
         echo "ref=$DST" >> "$GITHUB_OUTPUT"
-      # ^ This is saves for use in the next step.
 
-    # This deploys the image that was received from
-    # Github in the Artifact Registry using the *runtime*
-    # account that was set up in the one-time script.
-    #
-    # It uses the `github-deployer` user that was authenticated
-    # earlier in the job to start the Cloud Run.
     - name: Deploy to Cloud Run
       id: deploy
-      # Used to deploy the image from the Artifact registry.
-      # Ran using the auth token for `github-deployer`, once again
-      # doesn't run the image as `github-deployer` but instead
-      # runs it using a lower privledged account `http-endpoint-runtime`.
-      uses: google-github-actions/deploy-cloudrun@2028e2d7d30a78c6910e0632e48dd561b064884d # v3.0.1
+      uses: google-github-actions/deploy-cloudrun@2028e2d7d30a78c6910e0632e48dd561b064884d
       with:
-        # Tells it which Cloud Run service to point to
-        # for placing the endpoint.
         service: ${{ vars.GCP_SERVICE }}
         region: ${{ vars.GCP_REGION }}
-        # Image just created by the step above
         image: ${{ steps.image.outputs.ref }}
         flags: >-
           --port=3000
@@ -209,15 +115,6 @@ jobs:
           --allow-unauthenticated
           --min-instances=0
           --max-instances=2
-      # `allow-unauthenticated` allows public access
-      #
-      # The instance counts says to scale only up to 2
-      # but to otherwise not run any instances if no demand.
-      #
-      # The service account tells it which account to use to
-      # run it and that is the `http-endpoint-runtime` that was
-      # set up in the one-time run script with less privledges.
 
     - name: smoke test the deployed endpoint
       run: curl --fail --silent --show-error "${{ steps.deploy.outputs.url }}"
-      # Just tests whether the endpoint can be accessed.
